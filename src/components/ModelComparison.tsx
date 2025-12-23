@@ -4,10 +4,36 @@ import TextInput from './TextInput';
 import { performComparison } from '../lib/api';
 import { getEntityColor, formatEntityType } from '../lib/utils';
 
+
+
+interface Entity {
+  text: string;
+  type: string;
+  confidence: number;
+  start: number;
+  end: number;
+}
+
+interface ModelResultTyped {
+  model: string;
+  entityCount: number;
+  avgConfidence: number;
+  entities: Entity[];
+  entityTypes: string[];
+}
+
+interface ComparisonResult {
+  models: ModelResultTyped[];
+  recommendation: {
+    model: string;
+    reason: string;
+  };
+}
+
 export default function ModelComparison() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ComparisonResult | null>(null);
   const [error, setError] = useState('');
 
   const handleCompare = async () => {
@@ -87,7 +113,7 @@ export default function ModelComparison() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {result.models.map((model: any, idx: number) => {
+            {result.models.map((model: ModelResultTyped, idx: number) => {
               const isRecommended = model.model === result.recommendation.model;
               const colors = [
                 { bg: 'from-blue-50 to-blue-100', border: 'border-blue-300', text: 'text-blue-700' },
@@ -99,9 +125,8 @@ export default function ModelComparison() {
               return (
                 <div
                   key={model.model}
-                  className={`bg-gradient-to-br ${color.bg} rounded-lg shadow-sm border-2 ${
-                    isRecommended ? 'border-purple-500 ring-4 ring-purple-200' : color.border
-                  } p-6 relative`}
+                  className={`bg-gradient-to-br ${color.bg} rounded-lg shadow-sm border-2 ${isRecommended ? 'border-purple-500 ring-4 ring-purple-200' : color.border
+                    } p-6 relative`}
                 >
                   {isRecommended && (
                     <div className="absolute -top-3 -right-3 bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
@@ -164,23 +189,23 @@ export default function ModelComparison() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Detailed Entity Comparison</h3>
             <div className="space-y-6">
-              {result.models.map((model: any) => (
+              {result.models.map((model: ModelResultTyped) => (
                 <div key={model.model} className="border border-gray-200 rounded-lg p-4">
                   <h4 className="font-bold text-gray-900 mb-3">{model.model}</h4>
                   <div className="space-y-2">
                     {Object.entries(
-                      model.entities.reduce((acc: any, e: any) => {
+                      model.entities.reduce((acc: Record<string, Entity[]>, e: Entity) => {
                         if (!acc[e.type]) acc[e.type] = [];
                         acc[e.type].push(e);
                         return acc;
-                      }, {})
-                    ).map(([type, entities]: [string, any]) => (
+                      }, {} as Record<string, Entity[]>)
+                    ).map(([type, entities]: [string, Entity[]]) => (
                       <div key={type}>
                         <p className="text-xs text-gray-600 mb-1">
                           {formatEntityType(type)} ({entities.length})
                         </p>
                         <div className="flex flex-wrap gap-1">
-                          {entities.slice(0, 5).map((entity: any, idx: number) => (
+                          {entities.slice(0, 5).map((entity: Entity, idx: number) => (
                             <span
                               key={idx}
                               className={`px-2 py-1 rounded text-xs ${getEntityColor(type)}`}

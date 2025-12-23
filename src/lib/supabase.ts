@@ -16,7 +16,7 @@ export interface ClinicalAnalysis {
   input_text: string;
   model_used: string;
   analysis_type: string;
-  results: Record<string, any>;
+  results: Record<string, unknown>;
   confidence_score?: number;
   created_at: string;
 }
@@ -48,7 +48,7 @@ export interface BatchAnalysis {
   total_documents: number;
   completed_documents: number;
   status: string;
-  results_summary: Record<string, any>;
+  results_summary: Record<string, unknown>;
   created_at: string;
   completed_at?: string;
 }

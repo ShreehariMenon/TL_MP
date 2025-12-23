@@ -5,12 +5,27 @@ import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { getEntityColor, formatEntityType, exportAsJSON, exportAsCSV, calculateCompletenessScore, generateInsights } from '../lib/utils';
 
+interface Entity {
+  text: string;
+  type: string;
+  confidence: number;
+  start: number;
+  end: number;
+}
+
+interface NERResult {
+  entities: Entity[];
+  entityCount: number;
+  avgConfidence: number;
+  entityTypes: string[];
+}
+
 export default function NERAnalysis() {
   const [inputText, setInputText] = useState('');
   const [model, setModel] = useState('ClinicalBERT');
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<NERResult | null>(null);
   const [error, setError] = useState('');
 
   const handleAnalyze = async () => {
@@ -23,7 +38,7 @@ export default function NERAnalysis() {
     setError('');
 
     try {
-      const data = await performNER(inputText, model, confidenceThreshold);
+      const data = await performNER(inputText, model, confidenceThreshold) as NERResult;
       setResult(data);
 
       await supabase.from('clinical_analyses').insert({
@@ -35,7 +50,7 @@ export default function NERAnalysis() {
       });
 
       await supabase.from('extracted_entities').insert(
-        data.entities.map((entity: any) => ({
+        data.entities.map((entity: Entity) => ({
           analysis_id: null,
           entity_text: entity.text,
           entity_type: entity.type,
@@ -45,8 +60,9 @@ export default function NERAnalysis() {
         }))
       );
 
-      await supabase.rpc('execute_sql', {
-        query: `
+      try {
+        await supabase.rpc('execute_sql', {
+          query: `
           UPDATE model_performance
           SET
             analysis_count = analysis_count + 1,
@@ -56,7 +72,10 @@ export default function NERAnalysis() {
             updated_at = now()
           WHERE model_name = '${model}'
         `
-      }).catch(() => {});
+        });
+      } catch {
+        // Ignore stats update errors
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -72,7 +91,7 @@ export default function NERAnalysis() {
     let highlighted = '';
     let lastIndex = 0;
 
-    sortedEntities.forEach((entity: any) => {
+    sortedEntities.forEach((entity: Entity) => {
       highlighted += inputText.substring(lastIndex, entity.start);
       highlighted += `<mark class="px-1 py-0.5 rounded ${getEntityColor(entity.type)} border" title="${formatEntityType(entity.type)} (${(entity.confidence * 100).toFixed(1)}%)">${entity.text}</mark>`;
       lastIndex = entity.end;
@@ -82,7 +101,7 @@ export default function NERAnalysis() {
     return highlighted;
   };
 
-  const entityGroups = result?.entities.reduce((acc: any, entity: any) => {
+  const entityGroups = result?.entities.reduce((acc: Record<string, Entity[]>, entity: Entity) => {
     if (!acc[entity.type]) acc[entity.type] = [];
     acc[entity.type].push(entity);
     return acc;
@@ -203,7 +222,8 @@ export default function NERAnalysis() {
                   <span>JSON</span>
                 </button>
                 <button
-                  onClick={() => exportAsCSV(result.entities, 'ner-entities.csv')}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onClick={() => exportAsCSV(result.entities as any, 'ner-entities.csv')}
                   className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Download className="w-4 h-4" />
@@ -243,13 +263,13 @@ export default function NERAnalysis() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Extracted Entities by Category</h3>
             <div className="space-y-4">
-              {Object.entries(entityGroups).map(([type, entities]: [string, any]) => (
+              {Object.entries(entityGroups).map(([type, entities]: [string, Entity[]]) => (
                 <div key={type} className="border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-2">
                     {formatEntityType(type)} ({entities.length})
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {entities.map((entity: any, idx: number) => (
+                    {entities.map((entity: Entity, idx: number) => (
                       <span
                         key={idx}
                         className={`px-3 py-1 rounded-full text-sm ${getEntityColor(type)} border`}

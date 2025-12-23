@@ -4,11 +4,27 @@ import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { exportAsJSON, exportAsCSV } from '../lib/utils';
 
+interface Entity {
+  text: string;
+  type: string;
+  confidence: number;
+  start: number;
+  end: number;
+}
+
+interface BatchResult {
+  filename: string;
+  success: boolean;
+  entityCount?: number;
+  avgConfidence?: number;
+  entities?: Entity[];
+  error?: string;
+}
 export default function BatchProcessing() {
   const [files, setFiles] = useState<File[]>([]);
   const [model, setModel] = useState('ClinicalBERT');
   const [processing, setProcessing] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<BatchResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
 
@@ -27,7 +43,7 @@ export default function BatchProcessing() {
 
     setProcessing(true);
     setError('');
-    const batchResults: any[] = [];
+    const batchResults: BatchResult[] = [];
 
     const { data: batchRecord } = await supabase
       .from('batch_analyses')
@@ -84,7 +100,7 @@ export default function BatchProcessing() {
             successCount: batchResults.filter(r => r.success).length,
             avgEntities: batchResults
               .filter(r => r.success)
-              .reduce((sum, r) => sum + r.entityCount, 0) / batchResults.filter(r => r.success).length,
+              .reduce((sum, r) => sum + (r.entityCount || 0), 0) / batchResults.filter(r => r.success).length,
           },
         })
         .eq('id', batchRecord.id);
@@ -97,7 +113,7 @@ export default function BatchProcessing() {
   const successCount = results.filter(r => r.success).length;
   const totalEntities = results.reduce((sum, r) => sum + (r.entityCount || 0), 0);
   const avgConfidence = results.filter(r => r.success).length > 0
-    ? results.filter(r => r.success).reduce((sum, r) => sum + r.avgConfidence, 0) / successCount
+    ? results.filter(r => r.success).reduce((sum, r) => sum + (r.avgConfidence || 0), 0) / successCount
     : 0;
 
   return (
@@ -160,9 +176,8 @@ export default function BatchProcessing() {
           />
           <label
             htmlFor="batch-upload"
-            className={`inline-block px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 cursor-pointer transition-colors ${
-              processing ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`inline-block px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 cursor-pointer transition-colors ${processing ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             Select Files
           </label>
@@ -253,11 +268,10 @@ export default function BatchProcessing() {
               {results.map((result, idx) => (
                 <div
                   key={idx}
-                  className={`p-4 rounded-lg border ${
-                    result.success
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`}
+                  className={`p-4 rounded-lg border ${result.success
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -274,7 +288,7 @@ export default function BatchProcessing() {
                           Entities: <span className="font-bold">{result.entityCount}</span>
                         </span>
                         <span className="text-gray-600">
-                          Confidence: <span className="font-bold">{(result.avgConfidence * 100).toFixed(1)}%</span>
+                          Confidence: <span className="font-bold">{((result.avgConfidence || 0) * 100).toFixed(1)}%</span>
                         </span>
                       </div>
                     )}

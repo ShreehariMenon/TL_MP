@@ -31,7 +31,7 @@ export function getEntityColor(type: string): string {
 }
 
 // Export data as JSON
-export function exportAsJSON(data: any, filename: string) {
+export function exportAsJSON(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -44,7 +44,7 @@ export function exportAsJSON(data: any, filename: string) {
 }
 
 // Export data as CSV
-export function exportAsCSV(data: any[], filename: string) {
+export function exportAsCSV(data: Record<string, unknown>[], filename: string) {
   if (data.length === 0) return;
 
   const headers = Object.keys(data[0]);

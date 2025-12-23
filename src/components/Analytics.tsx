@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Activity, Clock, RefreshCw } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, ClinicalAnalysis, ModelPerformance } from '../lib/supabase';
+
+interface AnalyticsStats {
+  totalAnalyses: number;
+  avgConfidence: number;
+  totalEntities: number;
+  entityTypeDistribution: Record<string, number>;
+  analysisTypeDistribution: Record<string, number>;
+}
 
 export default function Analytics() {
-  const [stats, setStats] = useState<any>(null);
-  const [modelPerformance, setModelPerformance] = useState<any[]>([]);
-  const [recentAnalyses, setRecentAnalyses] = useState<any[]>([]);
+  const [stats, setStats] = useState<AnalyticsStats | null>(null);
+  const [modelPerformance, setModelPerformance] = useState<ModelPerformance[]>([]);
+  const [recentAnalyses, setRecentAnalyses] = useState<ClinicalAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadAnalytics = async () => {
@@ -31,12 +39,12 @@ export default function Analytics() {
       ? analyses.reduce((sum, a) => sum + (a.confidence_score || 0), 0) / analyses.length
       : 0;
 
-    const entityTypeDistribution = entities?.reduce((acc: any, e) => {
+    const entityTypeDistribution = entities?.reduce((acc: Record<string, number>, e) => {
       acc[e.entity_type] = (acc[e.entity_type] || 0) + 1;
       return acc;
     }, {}) || {};
 
-    const analysisTypeDistribution = analyses?.reduce((acc: any, a) => {
+    const analysisTypeDistribution = analyses?.reduce((acc: Record<string, number>, a) => {
       acc[a.analysis_type] = (acc[a.analysis_type] || 0) + 1;
       return acc;
     }, {}) || {};
@@ -58,7 +66,7 @@ export default function Analytics() {
     loadAnalytics();
   }, []);
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
@@ -67,10 +75,10 @@ export default function Analytics() {
   }
 
   const topEntityTypes = Object.entries(stats.entityTypeDistribution)
-    .sort(([, a]: any, [, b]: any) => b - a)
+    .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
     .slice(0, 8);
 
-  const maxEntityCount = Math.max(...topEntityTypes.map(([, count]: any) => count));
+  const maxEntityCount = Math.max(...topEntityTypes.map(([, count]) => count), 1);
 
   return (
     <div className="space-y-6">
@@ -171,9 +179,9 @@ export default function Analytics() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Analysis Type Distribution</h3>
           <div className="space-y-3">
-            {Object.entries(stats.analysisTypeDistribution).map(([type, count]: any) => {
+            {Object.entries(stats.analysisTypeDistribution).map(([type, count]) => {
               const percentage = (count / stats.totalAnalyses) * 100;
-              const colors: any = {
+              const colors: Record<string, string> = {
                 'NER': 'bg-blue-500',
                 'Summarization': 'bg-teal-500',
                 'QA': 'bg-green-500',
@@ -202,7 +210,7 @@ export default function Analytics() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Entity Type Distribution</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {topEntityTypes.map(([type, count]: any) => {
+          {topEntityTypes.map(([type, count]) => {
             const percentage = (count / maxEntityCount) * 100;
             return (
               <div key={type} className="space-y-2">

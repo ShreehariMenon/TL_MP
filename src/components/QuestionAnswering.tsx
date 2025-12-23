@@ -3,13 +3,19 @@ import { Play, Loader2, AlertCircle, MessageSquare, HelpCircle } from 'lucide-re
 import TextInput from './TextInput';
 import { performQA } from '../lib/api';
 import { supabase } from '../lib/supabase';
-
+interface QAResult {
+  question: string;
+  answer: string;
+  confidence: number;
+  context: string;
+  model: string;
+}
 export default function QuestionAnswering() {
   const [inputText, setInputText] = useState('');
   const [question, setQuestion] = useState('');
   const [model, setModel] = useState('ClinicalBERT');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<QAResult | null>(null);
   const [error, setError] = useState('');
 
   const sampleQuestions = [
@@ -34,7 +40,7 @@ export default function QuestionAnswering() {
     setError('');
 
     try {
-      const data = await performQA(inputText, question, model);
+      const data = await performQA(inputText, question, model) as QAResult;
       setResult(data);
 
       await supabase.from('clinical_analyses').insert({

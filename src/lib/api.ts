@@ -67,45 +67,66 @@ export async function performNER(
   model: string,
   confidenceThreshold = 0.5
 ): Promise<NERResult> {
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      type: 'ner',
-      text,
-      model,
-      confidenceThreshold,
-    }),
-  });
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'ner',
+        text,
+        model,
+        confidenceThreshold,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error('NER analysis failed');
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Supabase function not found. Did you deploy it? See SETUP_INSTRUCTIONS.md');
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'NER analysis failed');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Unable to connect to Supabase. Please check your VITE_SUPABASE_URL in .env and ensure your Supabase project is active.');
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.data;
 }
 
 export async function performSummarization(
   text: string,
   model: string
 ): Promise<SummarizationResult> {
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      type: 'summarization',
-      text,
-      model,
-    }),
-  });
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'summarization',
+        text,
+        model,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error('Summarization failed');
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Supabase function not found. Did you deploy it?');
+      }
+      throw new Error('Summarization failed');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Connection failed. Check your Supabase URL in .env');
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.data;
 }
 
 export async function performQA(
@@ -113,39 +134,59 @@ export async function performQA(
   question: string,
   model: string
 ): Promise<QAResult> {
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      type: 'qa',
-      text,
-      question,
-      model,
-    }),
-  });
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'qa',
+        text,
+        question,
+        model,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error('Question answering failed');
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Supabase function not found. Did you deploy it?');
+      }
+      throw new Error('Question answering failed');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Connection failed. Check your Supabase URL in .env');
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.data;
 }
 
 export async function performComparison(text: string): Promise<ComparisonResult> {
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      type: 'comparison',
-      text,
-    }),
-  });
+  try {
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type: 'comparison',
+        text,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error('Model comparison failed');
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Supabase function not found. Did you deploy it?');
+      }
+      throw new Error('Model comparison failed');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('Connection failed. Check your Supabase URL in .env');
+    }
+    throw error;
   }
-
-  const result = await response.json();
-  return result.data;
 }

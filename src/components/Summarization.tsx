@@ -5,11 +5,20 @@ import { performSummarization } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { exportAsJSON } from '../lib/utils';
 
+interface SummarizationResult {
+  summary: string;
+  originalLength: number;
+  summaryLength: number;
+  originalWords: number;
+  summaryWords: number;
+  compressionRatio: string;
+}
+
 export default function Summarization() {
   const [inputText, setInputText] = useState('');
   const [model, setModel] = useState('ClinicalBERT');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<SummarizationResult | null>(null);
   const [error, setError] = useState('');
 
   const handleSummarize = async () => {
@@ -22,7 +31,7 @@ export default function Summarization() {
     setError('');
 
     try {
-      const data = await performSummarization(inputText, model);
+      const data = await performSummarization(inputText, model) as SummarizationResult;
       setResult(data);
 
       await supabase.from('clinical_analyses').insert({
