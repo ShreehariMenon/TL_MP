@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Play, Download, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Play, Download, Loader2, AlertCircle, CheckCircle, Info, BarChart } from 'lucide-react';
 import TextInput from './TextInput';
 import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { getEntityColor, formatEntityType, exportAsJSON, exportAsCSV, calculateCompletenessScore, generateInsights } from '../lib/utils';
 import { useFileContext } from '../context/FileContext';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 interface Entity {
   text: string;
@@ -21,6 +22,8 @@ interface NERResult {
   entityTypes: string[];
 }
 
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'];
+
 export default function NERAnalysis() {
   const { currentText: inputText, setCurrentText: setInputText } = useFileContext();
   const [model, setModel] = useState('ClinicalBERT');
@@ -28,6 +31,7 @@ export default function NERAnalysis() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<NERResult | null>(null);
   const [error, setError] = useState('');
+  const [hoveredType, setHoveredType] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) {
@@ -94,7 +98,12 @@ export default function NERAnalysis() {
 
     sortedEntities.forEach((entity: Entity) => {
       highlighted += inputText.substring(lastIndex, entity.start);
-      highlighted += `<mark class="px-1 py-0.5 rounded ${getEntityColor(entity.type)} border" title="${formatEntityType(entity.type)} (${(entity.confidence * 100).toFixed(1)}%)">${entity.text}</mark>`;
+
+      const isDimmed = hoveredType && hoveredType !== entity.type;
+      const opacityClass = isDimmed ? 'opacity-20 saturate-0' : 'opacity-100';
+      const transitionClass = 'transition-all duration-300';
+
+      highlighted += `<mark class="px-1 py-0.5 rounded ${getEntityColor(entity.type)} border ${opacityClass} ${transitionClass} cursor-help" title="${formatEntityType(entity.type)} (${(entity.confidence * 100).toFixed(1)}%)">${entity.text}</mark>`;
       lastIndex = entity.end;
     });
 
@@ -110,6 +119,18 @@ export default function NERAnalysis() {
 
   const completeness = result ? calculateCompletenessScore(result.entities) : null;
   const insights = result ? generateInsights(result.entities) : [];
+
+  // Prepare data for PieChart
+  const pieData = Object.entries(entityGroups).map(([type, entities]) => ({
+    name: formatEntityType(type),
+    type: type, // keep original key for matching
+    value: entities.length
+  })).sort((a, b) => b.value - a.value);
+
+  // Map entity types to consistent colors based on index or hash would be better, 
+  // but simpler to map strictly to COLORS array order for now.
+  // Ideally getEntityColor could return a hex code for recharts, but it returns tailwind classes.
+  // We'll use the COLORS array for the chart and let the text highlight use the tailwind classes.
 
   return (
     <div className="space-y-6">
@@ -211,31 +232,109 @@ export default function NERAnalysis() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Highlighted Text</h3>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => exportAsJSON(result, 'ner-results.json')}
-                  className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>JSON</span>
-                </button>
-                <button
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onClick={() => exportAsCSV(result.entities as any, 'ner-entities.csv')}
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>CSV</span>
-                </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Interactive Chart Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <BarChart className="w-5 h-5 mr-2 text-indigo-500" />
+                Entity Distribution
+              </h3>
+              <div className="h-[300px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      onMouseEnter={(_, index) => setHoveredType(pieData[index].type)}
+                      onMouseLeave={() => setHoveredType(null)}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                          stroke={hoveredType === entry.type ? '#000' : 'none'}
+                          strokeWidth={2}
+                          className="cursor-pointer transition-all duration-300"
+                          opacity={hoveredType && hoveredType !== entry.type ? 0.3 : 1}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={100}
+                      content={({ payload }) => (
+                        <div className="flex flex-wrap gap-2 justify-center mt-4">
+                          {payload?.map((entry: any, index) => (
+                            <div
+                              key={`legend-${index}`}
+                              className={`flex items-center space-x-1 text-xs cursor-pointer px-2 py-1 rounded transition-colors ${hoveredType === pieData[index].type ? 'bg-gray-100 font-bold' : ''
+                                }`}
+                              onMouseEnter={() => setHoveredType(pieData[index].type)}
+                              onMouseLeave={() => setHoveredType(null)}
+                              style={{ opacity: hoveredType && hoveredType !== pieData[index].type ? 0.4 : 1 }}
+                            >
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                              <span className="text-gray-700">{entry.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Text overlay */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full text-center pointer-events-none">
+                  <div className="text-2xl font-bold text-gray-800">
+                    {hoveredType ? pieData.find(d => d.type === hoveredType)?.value : result.entityCount}
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wider">
+                    {hoveredType ? formatEntityType(hoveredType) : 'Total'}
+                  </div>
+                </div>
               </div>
             </div>
-            <div
-              className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: highlightedText() }}
-            />
+
+            {/* Highlighted Text Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Highlighted Text</h3>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => exportAsJSON(result, 'ner-results.json')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>JSON</span>
+                  </button>
+                  <button
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onClick={() => exportAsCSV(result.entities as any, 'ner-entities.csv')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                {hoveredType && (
+                  <div className="absolute top-2 right-2 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg z-10 animate-fade-in pointer-events-none">
+                    Highlighting: {formatEntityType(hoveredType)}
+                  </div>
+                )}
+                <div
+                  className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm leading-relaxed min-h-[300px] max-h-[500px] overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: highlightedText() }}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-lg shadow-sm border border-blue-200 p-6">

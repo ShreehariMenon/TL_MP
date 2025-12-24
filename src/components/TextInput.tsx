@@ -4,6 +4,9 @@ import { EXAMPLE_TEXTS } from '../lib/utils';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - pdfjs-dist types mismatch
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import mammoth from 'mammoth';
 
 // Use a CDN for the PDF.js worker to avoid complex build configuration issues
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -36,13 +39,13 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
         }
 
         onChange(fullText);
+      } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        onChange(result.value);
       } else {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const text = event.target?.result as string;
-          onChange(text);
-        };
-        reader.readAsText(file);
+        // Fallback or error for unsupported types
+        console.error('Unsupported file type');
       }
     }
   };
@@ -101,10 +104,10 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
       {inputMode === 'file' && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-white">
           <FileUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">Upload a clinical text file (.txt or .pdf)</p>
+          <p className="text-gray-600 mb-4">Upload a clinical text file (.pdf or .docx)</p>
           <input
             type="file"
-            accept=".txt,.pdf"
+            accept=".pdf,.docx,.doc"
             onChange={handleFileUpload}
             className="hidden"
             id="file-upload"

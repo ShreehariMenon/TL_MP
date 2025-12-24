@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Play, Loader2, AlertCircle, MessageSquare, HelpCircle } from 'lucide-react';
+import { Play, Loader2, AlertCircle, MessageSquare, HelpCircle, Gauge } from 'lucide-react';
 import TextInput from './TextInput';
 import { performQA } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts';
+
 interface QAResult {
   question: string;
   answer: string;
@@ -57,6 +59,18 @@ export default function QuestionAnswering() {
       setLoading(false);
     }
   };
+
+  // Prepare data for the donut/gauge chart
+  const confidenceData = result ? [
+    { name: 'Confidence', value: result.confidence * 100 },
+    { name: 'Remaining', value: 100 - (result.confidence * 100) },
+  ] : [];
+
+  const confidenceColor = result ? (
+    result.confidence > 0.8 ? '#10B981' : // Green
+      result.confidence > 0.5 ? '#F59E0B' : // amber
+        '#EF4444' // red
+  ) : '#E5E7EB';
 
   return (
     <div className="space-y-6">
@@ -146,16 +160,51 @@ export default function QuestionAnswering() {
 
       {result && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="text-sm text-gray-600 mb-1">Confidence Score</div>
-              <div className="text-3xl font-bold text-green-600">
-                {(result.confidence * 100).toFixed(1)}%
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Confidence Gauge */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col items-center justify-center relative overflow-hidden">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase flex items-center absolute top-6 left-6">
+                <Gauge className="w-4 h-4 mr-2" />
+                Confidence
+              </h3>
+              <div className="h-[200px] w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={confidenceData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      startAngle={180}
+                      endAngle={0}
+                      paddingAngle={0}
+                      dataKey="value"
+                    >
+                      <Cell key="confidence" fill={confidenceColor} />
+                      <Cell key="remaining" fill="#E5E7EB" />
+                      <Label
+                        value={`${(result.confidence * 100).toFixed(0)}%`}
+                        position="center"
+                        className="text-3xl font-bold fill-gray-900"
+                      />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-center -mt-10">
+                <p className="text-sm text-gray-500">
+                  {result.confidence > 0.8 ? 'High Confidence' : result.confidence > 0.5 ? 'Moderate Confidence' : 'Low Confidence'}
+                </p>
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="text-sm text-gray-600 mb-1">Model Used</div>
-              <div className="text-2xl font-bold text-blue-600">{result.model}</div>
+
+            {/* Details */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="text-sm text-gray-600 mb-1">Model Used</div>
+                <div className="text-2xl font-bold text-blue-600">{result.model}</div>
+              </div>
             </div>
           </div>
 

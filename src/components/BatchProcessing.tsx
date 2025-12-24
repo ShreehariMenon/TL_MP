@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, Play, Loader2, AlertCircle, CheckCircle, Download, FileText, Layers, Settings, Info } from 'lucide-react';
+import { Upload, Play, Loader2, AlertCircle, CheckCircle, Download, FileText, Layers, Settings, Info, PieChart as PieChartIcon } from 'lucide-react';
 import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { exportAsJSON, exportAsCSV } from '../lib/utils';
@@ -7,8 +7,9 @@ import { exportAsJSON, exportAsCSV } from '../lib/utils';
 // @ts-ignore
 import mammoth from 'mammoth';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// @ts-ignore - pdfjs-dist types mismatch
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 // Use a CDN for the PDF.js worker
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
@@ -30,6 +31,9 @@ interface BatchResult {
   entitySummary?: Record<string, number>;
   error?: string;
 }
+
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'];
+
 export default function BatchProcessing() {
   const [files, setFiles] = useState<File[]>([]);
   const [model, setModel] = useState('ClinicalBERT');
@@ -88,13 +92,12 @@ export default function BatchProcessing() {
             const pageText = textContent.items.map((item: any) => item.str).join(' ');
             text += pageText + '\n\n';
           }
-        } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+        } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.extractRawText({ arrayBuffer });
           text = result.value;
         } else {
-          // Default to text
-          text = await file.text();
+          throw new Error('Unsupported file format. Please upload PDF or DOCX.');
         }
       } catch (readErr) {
         batchResults.push({
@@ -174,7 +177,20 @@ export default function BatchProcessing() {
     setProcessing(false);
   };
 
-  // const successCount, totalEntities, avgConfidence are managed by state for live updates.
+  // Aggregate entity summary for the pie chart
+  const aggregateSummary = results.reduce((acc: Record<string, number>, result) => {
+    if (result.success && result.entitySummary) {
+      Object.entries(result.entitySummary).forEach(([type, count]) => {
+        acc[type] = (acc[type] || 0) + count;
+      });
+    }
+    return acc;
+  }, {});
+
+  const pieData = Object.entries(aggregateSummary).map(([name, value]) => ({
+    name: name.replace(/_/g, ' '),
+    value
+  })).sort((a, b) => b.value - a.value);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -237,6 +253,13 @@ export default function BatchProcessing() {
                   )}
                 </button>
               </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-start">
+                  <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -249,7 +272,7 @@ export default function BatchProcessing() {
             <ul className="space-y-2 text-xs text-blue-800">
               <li className="flex items-start">
                 <span className="mr-2">•</span>
-                Drag and drop multiple files (.pdf, .docx, .txt) into the upload zone.
+                Drag and drop multiple files (.pdf, .docx) into the upload zone.
               </li>
               <li className="flex items-start">
                 <span className="mr-2">•</span>
@@ -265,13 +288,15 @@ export default function BatchProcessing() {
               </li>
             </ul>
           </div>
-        </div>          <div
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${processing ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-orange-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer'
+        </div>
+
+        <div
+          className={`lg:col-span-2 border-2 border-dashed rounded-xl p-8 text-center transition-all ${processing ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-orange-200 hover:border-orange-400 hover:bg-orange-50 cursor-pointer'
             }`}
         >
           <input
             type="file"
-            accept=".txt,.pdf,.docx,.doc"
+            accept=".pdf,.docx,.doc"
             multiple
             onChange={handleFileChange}
             disabled={processing}
@@ -285,7 +310,7 @@ export default function BatchProcessing() {
             <h4 className="text-lg font-medium text-gray-900 mb-1">Drop files here</h4>
             <p className="text-sm text-gray-500 mb-4 px-8">
               Upload patient records, clinical notes, or pathology reports to extract entities automatically.
-              Supported formats: .txt, .pdf, .docx
+              Supported formats: .pdf, .docx
             </p>
             <div className="inline-block px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 shadow-sm hover:shadow-md transition-shadow">
               Browse Files
@@ -295,7 +320,7 @@ export default function BatchProcessing() {
       </div>
 
       {/* Right Panel: File List & Results */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
         {files.length === 0 && (
           <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-gray-400">
             <Layers className="w-16 h-16 mb-4 opacity-20" />
@@ -313,7 +338,7 @@ export default function BatchProcessing() {
                 </div>
               )}
             </div>
-            <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+            <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
               {files.map((file, idx) => {
                 const result = results.find(r => r.filename === file.name);
                 const isComplete = !!result;
@@ -371,25 +396,57 @@ export default function BatchProcessing() {
         )}
 
         {results.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-bottom duration-500">
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-bottom duration-500">
+            <div className="lg:col-span-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
               <p className="text-xs text-gray-500 uppercase">Successful</p>
               <p className="text-2xl font-bold text-green-600">{successCount}/{files.length}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <div className="lg:col-span-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
               <p className="text-xs text-gray-500 uppercase">Total Entities</p>
               <p className="text-2xl font-bold text-blue-600">{totalEntities}</p>
+              <p className="text-xs text-gray-500 mt-1 uppercase">Avg Confidence</p>
+              <p className="text-xl font-bold text-purple-600">{(avgConfidence * 100).toFixed(1)}%</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase">Avg Confidence</p>
-              <p className="text-2xl font-bold text-purple-600">{(avgConfidence * 100).toFixed(1)}%</p>
+
+            {/* Consolidated Distribution Chart */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col items-center relative overflow-hidden">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase absolute top-4 left-4 flex items-center">
+                <PieChartIcon className="w-3 h-3 mr-1" />
+                Aggregate Entities
+              </h4>
+              <div className="w-full h-[150px] flex items-center justify-center">
+                {pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend layout="vertical" align="right" verticalAlign="middle" iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-gray-400 text-xs">No entities found</p>
+                )}
+              </div>
             </div>
+
             <button
               onClick={() => exportAsCSV(results as any, 'batch-results.csv')}
-              className="bg-gray-900 text-white p-4 rounded-xl shadow-sm hover:bg-gray-800 transition-all flex flex-col items-center justify-center text-center"
+              className="lg:col-span-4 bg-gray-900 text-white p-4 rounded-xl shadow-sm hover:bg-gray-800 transition-all flex flex-col items-center justify-center text-center mt-2"
             >
               <Download className="w-5 h-5 mb-1" />
-              <span className="text-xs font-bold">Download Report</span>
+              <span className="text-xs font-bold">Download Full Report</span>
             </button>
           </div>
         )}
