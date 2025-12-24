@@ -5,6 +5,7 @@ import { performSummarization } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { exportAsJSON } from '../lib/utils';
 import { useFileContext } from '../context/FileContext';
+import { useNotification } from '../context/NotificationContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface SummarizationResult {
@@ -18,6 +19,7 @@ interface SummarizationResult {
 
 export default function Summarization() {
   const { currentText: inputText, setCurrentText: setInputText } = useFileContext();
+  const { showNotification } = useNotification();
   const [model, setModel] = useState('ClinicalBERT');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SummarizationResult | null>(null);
@@ -25,7 +27,9 @@ export default function Summarization() {
 
   const handleSummarize = async () => {
     if (!inputText.trim()) {
-      setError('Please enter text to summarize');
+      const msg = 'Please enter text to summarize';
+      setError(msg);
+      showNotification(msg, 'error');
       return;
     }
 
@@ -33,8 +37,10 @@ export default function Summarization() {
     setError('');
 
     try {
+      showNotification('Generating summary...', 'info');
       const data = await performSummarization(inputText, model) as SummarizationResult;
       setResult(data);
+      showNotification('Summary generated successfully!', 'success');
 
       await supabase.from('clinical_analyses').insert({
         input_text: inputText,
@@ -44,7 +50,9 @@ export default function Summarization() {
       });
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Summarization failed');
+      const msg = err instanceof Error ? err.message : 'Summarization failed';
+      setError(msg);
+      showNotification(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -57,7 +65,7 @@ export default function Summarization() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Text Summarization</h2>
         <p className="text-gray-600 mb-6">
           Automatically summarize lengthy clinical notes and research papers
@@ -71,7 +79,7 @@ export default function Summarization() {
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white shadow-sm"
             >
               <option value="BioBERT">BioBERT</option>
               <option value="ClinicalBERT">ClinicalBERT</option>
@@ -83,17 +91,17 @@ export default function Summarization() {
             <button
               onClick={handleSummarize}
               disabled={loading}
-              className="w-full bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2 font-medium"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Summarizing...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4" />
-                  <span>Summarize</span>
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>Generate Summary</span>
                 </>
               )}
             </button>
@@ -107,9 +115,9 @@ export default function Summarization() {
         />
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 text-red-600" />
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
       </div>

@@ -5,6 +5,7 @@ import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { getEntityColor, formatEntityType, exportAsJSON, exportAsCSV, calculateCompletenessScore, generateInsights } from '../lib/utils';
 import { useFileContext } from '../context/FileContext';
+import { useNotification } from '../context/NotificationContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 interface Entity {
@@ -26,6 +27,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1'
 
 export default function NERAnalysis() {
   const { currentText: inputText, setCurrentText: setInputText } = useFileContext();
+  const { showNotification } = useNotification();
   const [model, setModel] = useState('ClinicalBERT');
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,9 @@ export default function NERAnalysis() {
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) {
-      setError('Please enter text to analyze');
+      const msg = 'Please enter text to analyze';
+      setError(msg);
+      showNotification(msg, 'error');
       return;
     }
 
@@ -43,8 +47,11 @@ export default function NERAnalysis() {
     setError('');
 
     try {
+      showNotification('Starting entity extraction...', 'info');
       const data = await performNER(inputText, model, confidenceThreshold) as NERResult;
       setResult(data);
+
+      showNotification(`Successfully extracted ${data.entityCount} entities`, 'success');
 
       await supabase.from('clinical_analyses').insert({
         input_text: inputText,
@@ -83,7 +90,9 @@ export default function NERAnalysis() {
       }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      const msg = err instanceof Error ? err.message : 'Analysis failed';
+      setError(msg);
+      showNotification(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -126,11 +135,6 @@ export default function NERAnalysis() {
     type: type, // keep original key for matching
     value: entities.length
   })).sort((a, b) => b.value - a.value);
-
-  // Map entity types to consistent colors based on index or hash would be better, 
-  // but simpler to map strictly to COLORS array order for now.
-  // Ideally getEntityColor could return a hex code for recharts, but it returns tailwind classes.
-  // We'll use the COLORS array for the chart and let the text highlight use the tailwind classes.
 
   return (
     <div className="space-y-6">
@@ -176,7 +180,7 @@ export default function NERAnalysis() {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2 font-medium"
             >
               {loading ? (
                 <>
@@ -185,8 +189,8 @@ export default function NERAnalysis() {
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4" />
-                  <span>Analyze</span>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Analyze Entities</span>
                 </>
               )}
             </button>
@@ -200,9 +204,9 @@ export default function NERAnalysis() {
         />
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 text-red-600" />
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 font-medium">{error}</p>
           </div>
         )}
       </div>
