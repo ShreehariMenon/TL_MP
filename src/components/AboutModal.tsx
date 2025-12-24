@@ -1,4 +1,4 @@
-import { X, Globe, Mail, Github } from 'lucide-react';
+import { X, Github, Users, FileText, BookOpen } from 'lucide-react';
 
 interface AboutModalProps {
     isOpen: boolean;
@@ -8,6 +8,13 @@ interface AboutModalProps {
 export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
     if (!isOpen) return null;
 
+    const teamMembers = [
+        { name: "Shreehari Menon", role: "Lead Developer" },
+        { name: "S Monishaa", role: "Researcher & Developer" },
+        { name: "Syeda Aayesha Aiman Hashmi", role: "Researcher & Developer" },
+        { name: "Vimudha R", role: "Researcher & Developer" },
+    ];
+
     return (
         <div className="fixed inset-0 z-[80] overflow-y-auto">
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose} />
@@ -15,8 +22,8 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-w-2xl animate-in fade-in zoom-in-95 duration-200">
 
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8 text-white">
-                        <h3 className="text-2xl font-bold">About ProjBolt Clinical AI</h3>
+                    <div className="bg-gradient-to-r from-teal-600 to-blue-700 px-6 py-8 text-white">
+                        <h3 className="text-2xl font-bold">Breast Cancer Text Analysis Platform</h3>
                         <p className="text-blue-100 mt-2">Empowering Healthcare with NLP</p>
                         <button
                             onClick={onClose}
@@ -45,20 +52,58 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
                         </section>
 
                         <div className="border-t border-gray-100 pt-6 mt-6">
-                            <h4 className="text-lg font-semibold text-gray-900 mb-4">Contact & Support</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <a href="#" className="flex items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors">
-                                    <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                                    Support
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <Users className="w-5 h-5 mr-2 text-indigo-600" />
+                                Connect & Resources
+                            </h4>
+
+                            {/* Resources Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                <a
+                                    href="https://drive.google.com/file/d/1mbteibABTZZRFCuyeMrUNh_9wTY_pY52/view?usp=sharing"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors text-center group"
+                                >
+                                    <FileText className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                                    <span className="text-sm font-medium">Research Paper</span>
                                 </a>
-                                <a href="#" className="flex items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors">
-                                    <Github className="w-5 h-5 mr-2 text-gray-900" />
-                                    GitHub
+                                <a
+                                    href="https://drive.google.com/file/d/1f46__mTIVKpm418ztTPL-5Wy-Yp1qOJ6/view?usp=sharing"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 transition-colors text-center group"
+                                >
+                                    <BookOpen className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                                    <span className="text-sm font-medium">Project Report</span>
                                 </a>
-                                <a href="#" className="flex items-center justify-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors">
-                                    <Globe className="w-5 h-5 mr-2 text-green-600" />
-                                    Website
+                                <a
+                                    href="https://github.com/ShreehariMenon/TL_MP"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors text-center group"
+                                >
+                                    <Github className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                                    <span className="text-sm font-medium">GitHub Repo</span>
                                 </a>
+                            </div>
+
+                            {/* Team Grid */}
+                            <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+                                <h5 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Project Contributors</h5>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {teamMembers.map((member, idx) => (
+                                        <div key={idx} className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs ring-2 ring-indigo-50">
+                                                {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 text-sm">{member.name}</p>
+                                                <p className="text-[10px] text-gray-500 uppercase">{member.role}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

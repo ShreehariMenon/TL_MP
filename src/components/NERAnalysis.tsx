@@ -43,6 +43,13 @@ export default function NERAnalysis() {
       return;
     }
 
+    if (inputText.trim().length < 10) {
+      const msg = 'Text is too short for analysis. Please enter at least 10 characters.';
+      setError(msg);
+      showNotification(msg, 'warning');
+      return;
+    }
+
     setLoading(true);
     setError('');
 

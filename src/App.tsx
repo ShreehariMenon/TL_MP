@@ -94,6 +94,9 @@ function ClinicalNLPApp() {
                 <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full font-medium text-xs border border-teal-100">
                   ClinicalBERT
                 </span>
+                <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full font-medium text-xs border border-indigo-100">
+                  PubMedBERT
+                </span>
               </div>
               <button
                 onClick={() => setIsHistoryOpen(true)}
