@@ -40,10 +40,11 @@ import BatchProcessing from './components/BatchProcessing';
 import Analytics from './components/Analytics';
 import FineTuning from './components/FineTuning';
 import Guide from './components/Guide';
+import { FileProvider } from './context/FileContext';
 
 type Tab = 'ner' | 'summarization' | 'qa' | 'comparison' | 'batch' | 'analytics' | 'finetune' | 'guide';
 
-function App() {
+function ClinicalNLPApp() {
   const [activeTab, setActiveTab] = useState<Tab>('ner');
 
   const tabs = [
@@ -146,6 +147,14 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <FileProvider>
+      <ClinicalNLPApp />
+    </FileProvider>
   );
 }
 

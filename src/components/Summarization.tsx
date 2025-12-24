@@ -4,6 +4,7 @@ import TextInput from './TextInput';
 import { performSummarization } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { exportAsJSON } from '../lib/utils';
+import { useFileContext } from '../context/FileContext';
 
 interface SummarizationResult {
   summary: string;
@@ -15,7 +16,7 @@ interface SummarizationResult {
 }
 
 export default function Summarization() {
-  const [inputText, setInputText] = useState('');
+  const { currentText: inputText, setCurrentText: setInputText } = useFileContext();
   const [model, setModel] = useState('ClinicalBERT');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SummarizationResult | null>(null);

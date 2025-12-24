@@ -73,7 +73,8 @@ async function performNER(text: string, _modelName: string, threshold = 0.5) {
   // Map friendly names to actual HF models if needed, or use a robust default
   // Ideally, use a specific clinical NER model if available on free tier, 
   // otherwise fallback to a good general NER model.
-  const modelId = "dslim/bert-base-NER";
+  // Use a specialized Biomedical NER model instead of general generic NER
+  const modelId = "d4data/biomedical-ner-all";
 
   const result = await queryHuggingFace(modelId, { inputs: text });
 
@@ -81,7 +82,7 @@ async function performNER(text: string, _modelName: string, threshold = 0.5) {
   // We need to map this to our frontend expected format
   const entities = Array.isArray(result) ? result.map((item: any) => ({
     text: item.word,
-    type: item.entity_group, // 'PER', 'ORG', 'LOC', 'MISC' for standard NER
+    type: item.entity_group, // Returns specific tags like 'Sign_symptom', 'Diagnostic_procedure'
     confidence: item.score,
     start: item.start,
     end: item.end,
@@ -100,11 +101,17 @@ async function performNER(text: string, _modelName: string, threshold = 0.5) {
 }
 
 async function performSummarization(text: string, _modelName: string) {
-  const modelId = "facebook/bart-large-cnn";
+  // Use a lighter model to avoid timeouts on free tier
+  const modelId = "sshleifer/distilbart-cnn-12-6";
+
+  // Truncate text to avoid model errors (BART limit is 1024 tokens, approx 3500-4000 chars)
+  // If text is too long, the API returns a 400 error.
+  // Reducing to 2000 chars to be extremely safe for free tier timeouts
+  const truncatedText = text.slice(0, 2000);
 
   const result = await queryHuggingFace(modelId, {
-    inputs: text,
-    parameters: { min_length: 30, max_length: 150 }
+    inputs: truncatedText,
+    parameters: { min_length: Math.min(30, Math.floor(truncatedText.length / 2)), max_length: 150 }
   });
 
   // Result is usually [{ summary_text: "..." }]

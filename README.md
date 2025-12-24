@@ -70,3 +70,21 @@ This project requires a backend to run the AI models.
 npm run dev
 ```
 Open the link (usually http://localhost:5173) in your browser.
+
+## Deployment (Production)
+
+To make your app public (so your friend can visit a URL like `my-app.vercel.app`):
+
+### Option 1: Vercel (Recommended)
+1.  Push your code to GitHub.
+2.  Go to [vercel.com](https://vercel.com) and sign up with GitHub.
+3.  Click **"Add New Project"** and select this repository.
+4.  **Important:** Under "Environment Variables", add:
+    - `VITE_SUPABASE_URL`: (Your URL from step 4)
+    - `VITE_SUPABASE_ANON_KEY`: (Your Key from step 4)
+5.  Click **Deploy**.
+
+### Option 2: Netlify
+1.  Go to [netlify.com](https://netlify.com) and sign up.
+2.  Drag and drop the `dist` folder (created after running `npm run build`) OR connect via GitHub.
+3.  If connecting GitHub, make sure to add the Environment Variables in **Site Settings > Build & Deploy > Environment**.

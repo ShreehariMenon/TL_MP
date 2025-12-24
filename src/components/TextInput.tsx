@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { FileUp, Type, BookMarked } from 'lucide-react';
 import { EXAMPLE_TEXTS } from '../lib/utils';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - pdfjs-dist types mismatch
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+
+// Use a CDN for the PDF.js worker to avoid complex build configuration issues
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 interface TextInputProps {
   value: string;
@@ -12,15 +18,32 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
   const [inputMode, setInputMode] = useState<'textarea' | 'file' | 'example'>('textarea');
   const [selectedExample, setSelectedExample] = useState<keyof typeof EXAMPLE_TEXTS>('pathology');
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        onChange(text);
-      };
-      reader.readAsText(file);
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await getDocument(arrayBuffer).promise;
+        let fullText = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n\n';
+        }
+
+        onChange(fullText);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target?.result as string;
+          onChange(text);
+        };
+        reader.readAsText(file);
+      }
     }
   };
 
@@ -34,11 +57,10 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
       <div className="flex space-x-2">
         <button
           onClick={() => setInputMode('textarea')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-            inputMode === 'textarea'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${inputMode === 'textarea'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
         >
           <Type className="w-4 h-4" />
           <span>Type Text</span>
@@ -46,11 +68,10 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
 
         <button
           onClick={() => setInputMode('file')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-            inputMode === 'file'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${inputMode === 'file'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
         >
           <FileUp className="w-4 h-4" />
           <span>Upload File</span>
@@ -58,11 +79,10 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
 
         <button
           onClick={() => setInputMode('example')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-            inputMode === 'example'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${inputMode === 'example'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
         >
           <BookMarked className="w-4 h-4" />
           <span>Use Example</span>
@@ -81,10 +101,10 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
       {inputMode === 'file' && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-white">
           <FileUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">Upload a clinical text file</p>
+          <p className="text-gray-600 mb-4">Upload a clinical text file (.txt or .pdf)</p>
           <input
             type="file"
-            accept=".txt,.doc,.docx"
+            accept=".txt,.pdf"
             onChange={handleFileUpload}
             className="hidden"
             id="file-upload"
@@ -109,31 +129,28 @@ export default function TextInput({ value, onChange, placeholder }: TextInputPro
           <div className="flex space-x-2">
             <button
               onClick={() => handleExampleSelect('pathology')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedExample === 'pathology'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedExample === 'pathology'
+                ? 'bg-teal-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
             >
               Pathology Report
             </button>
             <button
               onClick={() => handleExampleSelect('clinical')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedExample === 'clinical'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedExample === 'clinical'
+                ? 'bg-teal-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
             >
               Clinical Note
             </button>
             <button
               onClick={() => handleExampleSelect('followup')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedExample === 'followup'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedExample === 'followup'
+                ? 'bg-teal-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
             >
               Follow-up
             </button>

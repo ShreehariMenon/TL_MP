@@ -4,6 +4,7 @@ import TextInput from './TextInput';
 import { performNER } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { getEntityColor, formatEntityType, exportAsJSON, exportAsCSV, calculateCompletenessScore, generateInsights } from '../lib/utils';
+import { useFileContext } from '../context/FileContext';
 
 interface Entity {
   text: string;
@@ -21,7 +22,7 @@ interface NERResult {
 }
 
 export default function NERAnalysis() {
-  const [inputText, setInputText] = useState('');
+  const { currentText: inputText, setCurrentText: setInputText } = useFileContext();
   const [model, setModel] = useState('ClinicalBERT');
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.5);
   const [loading, setLoading] = useState(false);

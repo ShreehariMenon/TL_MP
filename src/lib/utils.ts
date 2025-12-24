@@ -3,14 +3,32 @@
  */
 
 // Entity type colors for visualization
+// Entity type colors for visualization
 export const ENTITY_COLORS: Record<string, string> = {
+  // Original Specific Tags
   TUMOR_SIZE: 'bg-blue-100 text-blue-800 border-blue-300',
   TUMOR_TYPE: 'bg-purple-100 text-purple-800 border-purple-300',
   TUMOR_CLASSIFICATION: 'bg-indigo-100 text-indigo-800 border-indigo-300',
   RECEPTOR_STATUS: 'bg-green-100 text-green-800 border-green-300',
   STAGE: 'bg-orange-100 text-orange-800 border-orange-300',
   GRADE: 'bg-amber-100 text-amber-800 border-amber-300',
-  TNM_STAGE: 'bg-red-100 text-red-800 border-red-300',
+
+  // Biomedical NER Tags (d4data/biomedical-ner-all)
+  Sign_symptom: 'bg-red-100 text-red-800 border-red-300',
+  Diagnostic_procedure: 'bg-blue-100 text-blue-800 border-blue-300',
+  Medication: 'bg-teal-100 text-teal-800 border-teal-300',
+  Biological_structure: 'bg-rose-100 text-rose-800 border-rose-300',
+  Lab_value: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  Date: 'bg-gray-100 text-gray-800 border-gray-300',
+  Patient_characteristic: 'bg-pink-100 text-pink-800 border-pink-300',
+  Family_history: 'bg-purple-100 text-purple-800 border-purple-300',
+  History: 'bg-purple-50 text-purple-700 border-purple-200',
+  Detailed_description: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+  Therapeutic_procedure: 'bg-green-100 text-green-800 border-green-300',
+  Clinical_event: 'bg-orange-50 text-orange-800 border-orange-200',
+  Outcome: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+
+  // Others
   TREATMENT: 'bg-teal-100 text-teal-800 border-teal-300',
   MEDICATION: 'bg-cyan-100 text-cyan-800 border-cyan-300',
   AGE: 'bg-pink-100 text-pink-800 border-pink-300',
@@ -20,9 +38,9 @@ export const ENTITY_COLORS: Record<string, string> = {
 // Format entity type for display
 export function formatEntityType(type: string): string {
   return type
-    .split('_')
-    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ');
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
 }
 
 // Get color class for entity type
@@ -72,18 +90,35 @@ export function exportAsCSV(data: Record<string, unknown>[], filename: string) {
 
 // Calculate completeness score for clinical data extraction
 export function calculateCompletenessScore(entities: Array<{ type: string }>) {
-  const requiredTypes = [
-    'TUMOR_SIZE',
-    'TUMOR_TYPE',
-    'RECEPTOR_STATUS',
-    'STAGE',
-  ];
+  // Check which model schema appears to be in use
+  const hasBiomedicalTags = entities.some(e =>
+    ['Sign_symptom', 'Diagnostic_procedure', 'Medication'].includes(e.type)
+  );
+
+  let requiredTypes: string[];
+
+  if (hasBiomedicalTags) {
+    // Schema for d4data/biomedical-ner-all
+    requiredTypes = [
+      'Sign_symptom',
+      'Diagnostic_procedure',
+      'Biological_structure'
+    ];
+  } else {
+    // Schema for specialized Breast Cancer models
+    requiredTypes = [
+      'TUMOR_SIZE',
+      'TUMOR_TYPE',
+      'RECEPTOR_STATUS',
+      'STAGE',
+    ];
+  }
 
   const extractedTypes = new Set(entities.map(e => e.type));
   const matchedTypes = requiredTypes.filter(type => extractedTypes.has(type));
 
   return {
-    score: (matchedTypes.length / requiredTypes.length) * 100,
+    score: requiredTypes.length > 0 ? (matchedTypes.length / requiredTypes.length) * 100 : 0,
     matched: matchedTypes.length,
     total: requiredTypes.length,
     missing: requiredTypes.filter(type => !extractedTypes.has(type)),
@@ -94,8 +129,11 @@ export function calculateCompletenessScore(entities: Array<{ type: string }>) {
 export function generateInsights(entities: Array<{ type: string; confidence: number }>) {
   const insights: string[] = [];
   const entityTypes = new Set(entities.map(e => e.type));
-  const avgConfidence = entities.reduce((sum, e) => sum + e.confidence, 0) / entities.length;
+  const avgConfidence = entities.length > 0
+    ? entities.reduce((sum, e) => sum + e.confidence, 0) / entities.length
+    : 0;
 
+  // Insights for specific Breast Cancer Model
   if (entityTypes.has('TUMOR_SIZE') && entityTypes.has('TUMOR_TYPE')) {
     insights.push('✓ Complete tumor characterization detected');
   }
@@ -104,19 +142,21 @@ export function generateInsights(entities: Array<{ type: string; confidence: num
     const receptorCount = entities.filter(e => e.type === 'RECEPTOR_STATUS').length;
     if (receptorCount >= 3) {
       insights.push('✓ Comprehensive receptor panel identified');
-    } else {
-      insights.push('⚠ Partial receptor status information');
     }
   }
 
-  if (entityTypes.has('STAGE') || entityTypes.has('TNM_STAGE')) {
-    insights.push('✓ Cancer staging information present');
-  } else {
-    insights.push('⚠ No staging information detected');
+  // Insights for General Biomedical Model
+  if (entityTypes.has('Sign_symptom')) {
+    const count = entities.filter(e => e.type === 'Sign_symptom').length;
+    insights.push(`✓ Identified ${count} clinical signs/symptoms`);
   }
 
-  if (entityTypes.has('TREATMENT') || entityTypes.has('MEDICATION')) {
-    insights.push('✓ Treatment plan documented');
+  if (entityTypes.has('Diagnostic_procedure')) {
+    insights.push('✓ Diagnostic procedures documented');
+  }
+
+  if (entityTypes.has('Medication') || entityTypes.has('Therapeutic_procedure')) {
+    insights.push('✓ Therapeutic interventions identified');
   }
 
   if (avgConfidence > 0.85) {
