@@ -177,6 +177,8 @@ export default function BatchProcessing() {
     setProcessing(false);
   };
 
+  const [selectedResult, setSelectedResult] = useState<BatchResult | null>(null);
+
   // Aggregate entity summary for the pie chart
   const aggregateSummary = results.reduce((acc: Record<string, number>, result) => {
     if (result.success && result.entitySummary) {
@@ -363,23 +365,21 @@ export default function BatchProcessing() {
                         <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
                       )}
                       {isComplete && (
-                        <div className="flex flex-col items-end space-y-1">
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                            {isSuccess ? <CheckCircle className="w-3 h-3 mr-1" /> : <AlertCircle className="w-3 h-3 mr-1" />}
-                            <span>{isSuccess ? `Success (${result?.entityCount || 0})` : 'Failed'}</span>
-                          </div>
-                          {isSuccess && result?.entitySummary && (
-                            <div className="flex flex-wrap gap-1 justify-end max-w-md">
-                              {Object.entries(result.entitySummary).slice(0, 3).map(([type, count], k) => (
-                                <span key={k} className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200">
-                                  {count} {type.replace(/_/g, ' ')}
-                                </span>
-                              ))}
-                              {Object.keys(result.entitySummary).length > 3 && (
-                                <span className="text-[10px] text-gray-400">+{Object.keys(result.entitySummary).length - 3} more</span>
-                              )}
+                        <div className="flex items-center space-x-3">
+                          <div className="flex flex-col items-end space-y-1">
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                              {isSuccess ? <CheckCircle className="w-3 h-3 mr-1" /> : <AlertCircle className="w-3 h-3 mr-1" />}
+                              <span>{isSuccess ? `Success (${result?.entityCount || 0})` : 'Failed'}</span>
                             </div>
+                          </div>
+                          {isSuccess && (
+                            <button
+                              onClick={() => setSelectedResult(result)}
+                              className="px-3 py-1 bg-white border border-gray-200 text-gray-600 text-xs rounded-md hover:border-orange-300 hover:text-orange-600 transition-colors shadow-sm"
+                            >
+                              View
+                            </button>
                           )}
                         </div>
                       )}
@@ -451,6 +451,87 @@ export default function BatchProcessing() {
           </div>
         )}
       </div>
+
+      {/* Result Detail Modal */}
+      {selectedResult && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setSelectedResult(null)} />
+          <div className="relative min-h-screen flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedResult.filename}</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Completed</span>
+                    <span className="text-xs text-gray-500">{selectedResult.entityCount} entities found</span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => exportAsJSON([selectedResult], `analysis-${selectedResult.filename}.json`)}
+                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2 text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download JSON</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedResult(null)}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6 space-y-6">
+
+                {/* Entity Summary Chips */}
+                {selectedResult.entitySummary && (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(selectedResult.entitySummary).map(([type, count], idx) => (
+                      <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 flex items-center space-x-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                        <span className="text-xs font-medium text-gray-700">{type}</span>
+                        <span className="text-xs bg-white border border-gray-200 px-1.5 rounded text-gray-500">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Entities Table */}
+                <div className="border rounded-xl overflow-hidden border-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entity Text</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedResult.entities?.map((entity, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{entity.text}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {entity.type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {(entity.confidence * 100).toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

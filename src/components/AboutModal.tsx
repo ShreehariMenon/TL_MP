@@ -9,10 +9,10 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
     if (!isOpen) return null;
 
     const teamMembers = [
-        { name: "Shreehari Menon", role: "Lead Developer" },
-        { name: "S Monishaa", role: "Researcher & Developer" },
-        { name: "Syeda Aayesha Aiman Hashmi", role: "Researcher & Developer" },
-        { name: "Vimudha R", role: "Researcher & Developer" },
+        { name: "Shreehari Menon", role: "Principal Investigator & Tech Lead", linkedin: "https://www.linkedin.com/in/shreehari-menon-bb7979260/" },
+        { name: "S Monishaa", role: "ML Systems Architect & Researcher", linkedin: "https://www.linkedin.com/in/monishaashiva/" },
+        { name: "Syeda Aayesha Aiman Hashmi", role: "Clinical Data & Software Engineer", linkedin: "https://www.linkedin.com/in/syeda-aiman04/" },
+        { name: "Vimudha R", role: "Biomedical NLP Research Engineer", linkedin: "https://www.linkedin.com/in/vimudha-r-4013922a6/" },
     ];
 
     return (
@@ -53,55 +53,77 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
                         <div className="border-t border-gray-100 pt-6 mt-6">
                             <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                <Users className="w-5 h-5 mr-2 text-indigo-600" />
-                                Connect & Resources
+                                <FileText className="w-5 h-5 mr-2 text-indigo-600" />
+                                Resources
                             </h4>
 
                             {/* Resources Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                                 <a
                                     href="https://drive.google.com/file/d/1mbteibABTZZRFCuyeMrUNh_9wTY_pY52/view?usp=sharing"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors text-center group"
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 text-blue-700 hover:shadow-lg hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 group text-center"
                                 >
-                                    <FileText className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                                    <span className="text-sm font-medium">Research Paper</span>
+                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                                        <FileText className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <span className="font-semibold">Research Paper</span>
+                                    <span className="text-xs text-blue-400 mt-1">View Documentation</span>
                                 </a>
                                 <a
                                     href="https://drive.google.com/file/d/1f46__mTIVKpm418ztTPL-5Wy-Yp1qOJ6/view?usp=sharing"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 transition-colors text-center group"
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 text-teal-700 hover:shadow-lg hover:border-teal-300 hover:-translate-y-1 transition-all duration-300 group text-center"
                                 >
-                                    <BookOpen className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                                    <span className="text-sm font-medium">Project Report</span>
+                                    <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                                        <BookOpen className="w-6 h-6 text-teal-600" />
+                                    </div>
+                                    <span className="font-semibold">Project Report</span>
+                                    <span className="text-xs text-teal-400 mt-1">Comprehensive Guide</span>
                                 </a>
                                 <a
                                     href="https://github.com/ShreehariMenon/TL_MP"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex flex-col items-center justify-center p-4 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors text-center group"
+                                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 text-indigo-700 hover:shadow-lg hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300 group text-center"
                                 >
-                                    <Github className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
-                                    <span className="text-sm font-medium">GitHub Repo</span>
+                                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                                        <Github className="w-6 h-6 text-indigo-600" />
+                                    </div>
+                                    <span className="font-semibold">GitHub Repo</span>
+                                    <span className="text-xs text-indigo-400 mt-1">Source Code</span>
                                 </a>
                             </div>
 
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center pt-6 border-t border-gray-100">
+                                <Users className="w-5 h-5 mr-2 text-indigo-600" />
+                                Meet the Team
+                            </h4>
+
                             {/* Team Grid */}
-                            <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                                <h5 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Project Contributors</h5>
+                            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100 shadow-inner">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {teamMembers.map((member, idx) => (
-                                        <div key={idx} className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs ring-2 ring-indigo-50">
+                                        <a
+                                            key={idx}
+                                            href={member.linkedin}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center space-x-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-200 hover:scale-[1.02] transition-all cursor-pointer group"
+                                        >
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm ring-4 ring-indigo-50 group-hover:ring-indigo-100 transition-all shadow-md">
                                                 {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                                             </div>
                                             <div>
-                                                <p className="font-medium text-gray-900 text-sm">{member.name}</p>
-                                                <p className="text-[10px] text-gray-500 uppercase">{member.role}</p>
+                                                <p className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{member.name}</p>
+                                                <div className="flex items-center space-x-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">{member.role}</p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </a>
                                     ))}
                                 </div>
                             </div>
