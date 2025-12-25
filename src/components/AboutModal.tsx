@@ -9,10 +9,10 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
     if (!isOpen) return null;
 
     const teamMembers = [
-        { name: "Shreehari Menon", role: "Principal Investigator & Tech Lead", linkedin: "https://www.linkedin.com/in/shreehari-menon-bb7979260/" },
-        { name: "S Monishaa", role: "ML Systems Architect & Researcher", linkedin: "https://www.linkedin.com/in/monishaashiva/" },
-        { name: "Syeda Aayesha Aiman Hashmi", role: "Clinical Data & Software Engineer", linkedin: "https://www.linkedin.com/in/syeda-aiman04/" },
-        { name: "Vimudha R", role: "Biomedical NLP Research Engineer", linkedin: "https://www.linkedin.com/in/vimudha-r-4013922a6/" },
+        { name: "Shreehari Menon", role: "Principal Investigator & Tech Lead", linkedin: "https://www.linkedin.com/in/shreehari-menon-bb7979260/", image: "/team/shreehari.jpg" },
+        { name: "S Monishaa", role: "ML Systems Architect & Researcher", linkedin: "https://www.linkedin.com/in/monishaashiva/", image: "/team/monishaa.jpg" },
+        { name: "Syeda Aayesha Aiman Hashmi", role: "Clinical Data & Software Engineer", linkedin: "https://www.linkedin.com/in/syeda-aiman04/", image: "/team/aiman.jpg" },
+        { name: "Vimudha R", role: "Biomedical NLP Research Engineer", linkedin: "https://www.linkedin.com/in/vimudha-r-4013922a6/", image: "/team/vimudha.jpg" },
     ];
 
     return (
@@ -104,17 +104,21 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
                             {/* Team Grid */}
                             <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100 shadow-inner">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
                                     {teamMembers.map((member, idx) => (
                                         <a
                                             key={idx}
                                             href={member.linkedin}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center space-x-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-200 hover:scale-[1.02] transition-all cursor-pointer group"
+                                            className="flex items-center space-x-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-2xl hover:border-indigo-200 hover:scale-110 hover:z-20 relative transition-all duration-300 cursor-pointer group"
                                         >
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm ring-4 ring-indigo-50 group-hover:ring-indigo-100 transition-all shadow-md">
-                                                {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm ring-4 ring-indigo-50 group-hover:ring-indigo-200 transition-all shadow-md overflow-hidden shrink-0 group-hover:scale-110 duration-300">
+                                                {member.image ? (
+                                                    <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    member.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{member.name}</p>
