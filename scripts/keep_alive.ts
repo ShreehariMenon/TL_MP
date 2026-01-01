@@ -6,20 +6,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables manually
-const envPath = path.resolve(__dirname, '../.env');
-const envConfig = fs.readFileSync(envPath, 'utf8');
-const env: Record<string, string> = {};
+// Load environment variables
+const supabaseUrl = process.env.VITE_SUPABASE_URL || getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || getEnvVar('VITE_SUPABASE_ANON_KEY');
 
-envConfig.split('\n').forEach((line) => {
-    const [key, value] = line.split('=');
-    if (key && value) {
-        env[key.trim()] = value.trim();
+function getEnvVar(key: string): string | undefined {
+    try {
+        const envPath = path.resolve(__dirname, '../.env');
+        if (fs.existsSync(envPath)) {
+            const envConfig = fs.readFileSync(envPath, 'utf8');
+            const lines = envConfig.split('\n');
+            for (const line of lines) {
+                const [k, v] = line.split('=');
+                if (k && k.trim() === key) {
+                    return v.trim();
+                }
+            }
+        }
+    } catch (error) {
+        // Ignore error if .env doesn't exist (e.g. in GitHub Actions)
     }
-});
-
-const supabaseUrl = env.VITE_SUPABASE_URL;
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
+    return undefined;
+}
 
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables');
