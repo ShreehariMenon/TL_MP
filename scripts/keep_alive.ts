@@ -47,19 +47,10 @@ async function keepAlive() {
         .limit(1);
 
     if (error) {
-        console.error('Error pinging Supabase:', error);
-        // Even an error might count as activity, but let's try to be successful
-
-        // Fallback: try auth check
-        const { data: authData, error: authError } = await supabase.auth.getSession();
-        if (authError) {
-            console.error('Auth check failed:', authError);
-        } else {
-            console.log('Auth check successful');
-        }
-
+        console.error('❌ Error pinging Supabase:', error);
+        process.exit(1);
     } else {
-        console.log('Successfully pinged Supabase. Data:', data);
+        console.log('✅ Successfully pinged Supabase. Data:', data);
     }
 }
 
